@@ -1,0 +1,468 @@
+---
+title: "Cheatsheet - Marketing Research"
+author: "Not actually meant for cheating"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+geometry: margin=2cm
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(fig.height=6, fig.width=6)
+```
+
+# About this document
+
+- Some calculations are done in two equivalent ways. If so the line before them will include the comment
+
+    ```{r} 
+    # Equivalently:
+    ```
+    
+- If you are not sure what a function does try `?functionname` e.g.:
+
+    ```{r}
+    ?sum
+    ```
+
+
+# Recognizing Scale Type of Data
+
+1. Categorical
+
+    - Nominal: Grouping variable that has **no ranking** -> blue eyes, brown eyes, ...
+    
+        blue eyes > brown eyes does **not** make sense     
+        
+    - Ordinal: Grouping variable that has a **ranking** -> best grade, failing grade, ...
+        
+        best grade > failing grade makes sense
+
+2. Continuous
+    
+      Values increase continuously (e.g decimals like 1.5, 3.14159 make sense)
+      
+    - Interval: There is no 0 point. Therefore, differences make sense but percentage differences do not -> year 2000, year 2002
+    
+        The difference between year 2000 and year 2002 is 2 years but since the starting point (from a mathematical standpoint!) is arbitrary year 0 is not the  beginning of time. Thus, year 2002 is not x% greater than 2002. 
+    
+    - Ratio: There is a 0 point. Percentage differences as well as absolute differences make sense -> 5 meters, 10 meters
+        
+        5 meters is 5 meters shorter than 10 meters **and** 10 meters is twice (200%) as long as 5 meters.
+        
+# Visualization of each Scale Type
+
+## Categorical
+
+### Nominal
+
+Barchart with counts of each category in no particular order. i.e.
+
+```{r nominal-data-visualization}
+eyecolor <- c("brown", "green", "brown", "blue", "blue", "blue", "brown", "brown")
+eyecolor_counts <- table(eyecolor)
+barplot(eyecolor_counts)
+```
+
+### Ordinal
+
+Barchart with counts with x-axis following the ordering. i.e.
+
+```{r ordinal-data-visualization}
+# American grading system (A is best, F is fail)
+grades <- c("A", "A", "C", "D", "B", "A", "F", "B", "A", "D", "B")
+grades <- sort(grades, decreasing = TRUE)
+grades_count <- table(grades)
+barplot(grades_count)
+```
+
+## Continuous
+
+### Interval
+
+Histogram of counts over a small range. i.e.
+
+```{r interval-data-visualization}
+# e.g. .5 is second half
+year_of_observation <- c(2000.5, 2000.5, 2001, 2002, 1999.5, 1999, 2000, 2001.5, 2001)
+hist(year_of_observation)
+```
+
+### Ratio
+
+Boxplot, histogram or density plot of values. i.e.
+
+```{r ratio-data-visualization}
+set.seed(123)
+sales <- rnorm(100, 100, 20)
+boxplot(sales)
+# There is one outlier that is more than 1.5 * interquartile-range away from the box:
+any(sales<quantile(sales,0.25)-1.5*IQR(sales))
+hist(sales)
+plot(density(sales))
+```
+
+# Interpretatio of the boxplot
+
+The box shows the 25th percentile (i.e. the value for which 25% of the values in the data are lower and 75% are higher), the 50th percentile and the 75th percentile. By default (in R) the whiskers extend 1.5 times the interquartile range (see below) away from the box (i.e. below the 25th and above the 75th percentile). 
+
+# Interpretation of density plot
+
+see [Interpretation of p-values](#interpretation-of-p-values)
+
+# Measures of Location and Dispersion
+
+Makes sense for continuous variables. 
+
+## Location
+
+- Mean
+
+```{r mean}
+# Equivalently:
+sum(sales)/length(sales)
+mean(sales)
+```
+
+- Median
+
+```{r median}
+# Equivalently:
+quantile(sales, 0.5)
+median(sales)
+```
+
+if the distribution of the data is symmetric, like the normal distribution, mean and median are similar (theoretically the same). If you have some outliers that you would like to disregard  in your research, the median might be better as it is the point where 50% of the values in the data are below and 50% above.
+
+## Dispersion
+
+- Variance & Standard Deviation
+
+```{r varsd}
+var(sales)
+# Equivalently:
+sqrt(var(sales))
+sd(sales)
+```
+
+- Interquartile Range
+
+```{r iqr}
+# Equivalently:
+diff(quantile(sales, c(0.25, 0.75)))
+IQR(sales)
+```
+
+For the same argument as above the IQR might be preferred if you'd like an estimate robust to outliers.
+
+# Why do we need Confidence Intervals?
+
+- Read and understand slide 46 in the first slide set. 
+- Since we do not observe the entire population the parameter we estimate is just an approximation of the population parameter. Of course we would like to know the latter but we only observe our sample. We select a range around the sample parameter that is (theoretically, see central limit theorem) very likely to include the the true population parameter (i.e. for most of the samples we could get from the population the true parameter will lie within that range). That range is the confidence interval.
+
+# Interpretation of p-values
+
+The p-value is the probability of observing a test-statistic (e.g. the t-statistic for the t-test or the F-statistic for the ANOVA) that is as large or larger (in absolute terms. i.e. we are interested in how far away we are from 0) as the one we get based on our sample given that the Null Hypothesis is true.
+
+**WHY?** (Interpretation of area under the PDF)
+Think of all those density plots in the course. The area under the curve for a certain range on the x-axis represents the probability of observing a value in this range from the given distribution. For the H0 we always choose the "simpler" hypothesis (e.g. no difference; all equal; coefficient is 0). Since the H0 represents one value (e.g. 0) we can easily construct the theoretical distribution around that value given the H0 is true. Consider a t-test where the hypotesis is that the mean of sales is 100 (since I generated sales we know this to be true in this case). If we deduct our H0 from the mean of the data the result should be 0 if the H0 is true. Due to randomness in the data there is a small difference (recall: confidence intervals):
+
+```{r diffh0}
+mean(sales) - 100 # pretty close 
+```
+
+We also know that under repeated sampling the means of the samples would be normally distributed (have another look at central limit theorem if this is not  clear). Since we do not know the population variance we have to use the t-distribution (thus t-test) after dividing by ${s \over \sqrt{n}}$, the standard error of the mean. We observe that the mean in the data is approximately 1 standard error away from the H0 since the t-statistic is 0.99. 
+
+```{r tstat}
+t.statistic <- (mean(sales) - 100) / (sd(sales)/ sqrt(length(sales)))
+t.statistic
+```
+
+We look at the distribution of t-statistics we could theoretically get (if we sample many times) from a population in which the H0 is in fact true (this is the "given the H0 is true" part). This is a distribution since we will get a slightly different mean for every sample rather than just a single value. It looks as follows:
+
+```{r dens}
+curve(dt(x, df = length(sales)-1), xlim = c(-4,4))
+```
+
+The interpretation of this plot is: "If the H0 is true we expect the t-statistics of most of the samples we could theoretically draw from the population to be between -2 and 2". This interpretation follows because the area under the curve for a certain interval represents the probabilty of observing a value in this range. The surface area between -2 and 2 is much larger than the rest. 
+
+Now let's look at our t-value (0.99) that represents one sample from this population. The question was how likely it is, given the H0 is true, to observe a value at least as far away from 0 or even farther away. Since the surface area represents probability we can use it to visualize the p-value (in red): 
+
+
+```{r dens-pval}
+curve(dt(x, df = length(sales)-1), xlim = c(-4,4))
+abline(v = t.statistic)
+abline(h = 0)
+polygon(c(t.statistic, seq(t.statistic, 4, 0.01), 4), c(0, dt(seq(t.statistic, 4, 0.01), df = length(sales)-1), 0), col = 'red')
+```
+
+The area can be calculated using the cumulative distribution function (CDF) of the corresponding distribution (notice that we have to multiply by 2 for a two-sided test):
+
+```{r pval}
+# One-sided test
+p.value <- 1 - pt(t.statistic, df = length(sales)-1)
+p.value
+t.test(sales, mu = 100, alternative = "greater")
+# Two-sided test
+p.value <- 2*(1 - pt(t.statistic, df = length(sales)-1))
+p.value
+
+t.test(sales, mu = 100)
+```
+
+# Error Types in Hypothesis testing
+
+Notice that in a real life setting we do not observe the true population parameter so we never know if we made an error based on our sample.
+
+## Type I error
+In the population the H0 (Null Hypothesis) is in fact true but our sample leads us to rejecting it. i.e.
+
+H0: Mean of sales is equal to 100 (this is how I generated the sales data so we know the population in this case)
+
+H1: Mean of sales is not equal to 100
+
+Here we reject the H0 for the given sample if we choose a 95% confidence interval since the p-value is less than 0.05. If we choose a 99% confidence interval, we would not reject the H0 since the p-value is greater than 0.01. So a higher/wider confidence interval (equivalently lower $\alpha$) leads to less Type I errors.
+
+```{r tierr}
+set.seed(22)
+sales_sample <- sample(sales, 10)
+# 100 is the population mean!
+t.test(sales_sample, mu = 100)
+```
+
+
+## Type II error
+In the population the H0 is in fact false but our sample leads us to not rejecting it.
+
+H0: Mean is equal to 120
+
+H1: Mean is not equal to 120
+
+We do not reject the H0 that the population mean is equal to 120 if we choose a 95% confidence interval. If we choose a 90% confidence interval, we would reject the H0 since the p-value is less than 0.10. So a lower/shorter confidence interval (equivalently higher $\alpha$) leads to less Type II errors but more Type I errors.
+
+```{r tii-err}
+set.seed(1)
+sales_sample <- sample(sales, 10)
+# 100 is the population mean!
+t.test(sales_sample, mu = 120)
+```
+
+# Formulating the Hypotheses (H0 and H1)
+The H0 is always the simpler hypothesis in the sense that it is represented by a single value. In addition, we can never accept the H0. Therefore, it is usually a hypothesis we would like to reject to have an interesting finding in our research. Let's have a look at the hypotheses of the tests we have discussed:
+
+## t-test
+
+- one sample
+
+**Use for:** Continuous variable without grouping. Interest in difference to H0.
+
+    H0: mean is equal to specified value e.g. 100 
+    
+    H1: mean is not equal to specified value e.g. not 100
+  
+    The H0 represents a single value, e.g. 100, wherease the H1 represents all other (possible) values
+
+```{r one-s-ttest}
+t.test(sales, mu = 100)
+```
+
+- two sample
+  
+  **Use for**: Continuous variable observed for two groups. Interest in difference.
+  
+  H0: mean of two samples are the same -> difference in mean is 0
+  
+  H1: mean of two samples are not the same -> difference in mean is not 0
+  
+```{r two-s-ttest}
+sales2 <- rnorm(100, 100, 20)
+t.test(sales, sales2)
+```
+
+## ANOVA
+
+**Use for:** Continuous variable observed for two or more groups. Interest in difference.
+
+H0: mean of all categories are the same
+
+H1: at least one of the means is different
+
+```{r anova}
+sales_data <- data.frame(store1 = sales, store2 = sales2, store3 = rnorm(100, 100, 20))
+sales_data <- tidyr::gather(sales_data, key = store, value = sales)
+head(sales_data) # first 6 lines in df
+tail(sales_data) # last 6 lines in df
+
+# All have same mean:
+summary(aov(sales~store, data = sales_data))
+
+# Change one store to have a different mean:
+sales_data$sales[sales_data$store == "store3"] <- sales_data$sales[sales_data$store == "store3"] - 50
+summary(aov(sales~store, data = sales_data))
+```
+
+## $\chi^2$-test
+
+- For equal proportions
+  
+  **Use for:** Single categorical variable
+  
+  H0: Counts of each category are equal, e.g. all eye colors occur equally frequently
+  
+  H1: At least one category has a different count, e.g. at least one eye color occurs more or less frequently
+
+```{r chi-prop}
+chisq.test(eyecolor_counts)
+```
+
+
+- For independence
+
+  **Use for:** Two categorical variables
+  
+  H0: There is no relationship between two categorical variables, e.g. eye color is independent of biological sex
+  
+  H1: There is a relationship between two categorical variables, e.g. eye color depends on biological sex, i.e. is not independent
+  
+  
+```{r chi-indep}
+set.seed(1)
+female_eyecolor <- sample(eyecolor, size = length(eyecolor), replace = TRUE)
+male_eyecolor <- sample(eyecolor, size = length(eyecolor), replace = TRUE)
+
+
+eyecolor_data <- data.frame(f = female_eyecolor, m = male_eyecolor) 
+eyecolor_data <- tidyr::gather(eyecolor_data, key = 'sex', value = 'eyecolor')
+
+chisq.test(eyecolor_data$sex, eyecolor_data$eyecolor)
+```
+  
+## Regression
+
+**Use for:** Continuous dependent variable. Interest in relationship to independent variables.
+
+H0: Regression coefficient ($\beta_k$) is equal to 0
+
+H1: Regressoin coefficient is not equal to 0
+
+Notice that we test this hypothesis for each of the coefficients with a t-statistic similar to the t-test.
+
+```{r regression}
+set.seed(1)
+advertisement_spending <- rnorm(100, 50, 20)
+# True intercept is 20, true beta1 is 5
+sales <- 20 + 5 * advertisement_spending + rnorm(100, 0, 15)
+
+summary(ols <- lm(sales~advertisement_spending))
+
+# R-squared and adj. R-squared calculation
+(R2 <- sum((fitted(ols) - mean(sales))^2)  / sum((sales - mean(sales))^2))
+adjR2 <- 1 - ( (1-R2) * (length(sales) - 1) ) / (length(sales) - length(coef(ols)))
+adjR2
+```
+
+### Interpretation of coefficients
+If we do not spend anything on advertisement we expect, on average, sales of `r round(coef(ols)[1],3)` (this is the intercept). For each additional Euro spent on advertisements we expect an increase in sales of `r round(coef(ols)[2],3)` in sales (this is the slope parameter $\beta$). Both coefficients are significantly different from 0.  
+
+This can be visualized as follows:
+
+```{r plot-ols}
+plot(advertisement_spending, sales, xlim = c(10, 100), ylim = c(0, 450))
+lines(predict(ols, data.frame(advertisement_spending = 0:99)))
+```
+
+If we add more coefficients the interpretation of each single coefficient becomes conditional on keeping all other variables constant ("ceteris paribus").
+
+```{r mols}
+price <- rgamma(100, 10, 1)
+sales <- 20 + 5 * advertisement_spending - 3 * price + rnorm(100, 0, 15)
+summary(mols <- lm(sales ~ advertisement_spending + price))
+```
+
+e.g. Keeping advertisement spending constant we expect sales to decrease by `r round(coef(mols)['price'], 3)`. Keeping the price constant sales will increase, on average, by `r round(coef(mols)['advertisement_spending'],3)`. The interpretation of the intercept probably does not make sense for this regression. It is the sales if advertisement spendign and price are equal to 0. However, it needs to be used for predictions
+
+
+### Forecasting / Calculation of Expectations
+
+Essentially plug values for the data into the regression equation:
+
+E.g.
+- First regressoin: How much sales revenue would we expect if the store spends 50€ on advertisements:
+
+```{r pred-sols}
+# Equivalently:
+coef(ols)['(Intercept)'] + 50 * coef(ols)['advertisement_spending']
+predict(ols, data.frame(advertisement_spending = 50))
+```
+
+- Second regression: How much sales revenue would we expect if the store spends 30€ on advertisements and sets a price of 20€:
+
+```{r pred-mols}
+# Equivalently
+coef(mols)['(Intercept)'] + 30 * coef(mols)['advertisement_spending'] + 20 * coef(mols)['price']
+predict(mols, data.frame(advertisement_spending = 30, price = 20))
+```
+
+# Correlation & Covariance
+
+## Correlation
+
+**Use for:**  Linear relationship between 2 continuous variables
+
+- Coefficient always between -1 (perfect negative relationship) and 1 (perfect positive relationship)
+- Coefficient of 0 indicates no relationship.
+- Causal relationship needs to be established theoretically:
+    - Chicken - egg problem (A causes B or B causes A?)
+    - No causation at all possible e.g. two values independently grow over time
+    - Third variable causes both variables for which we meassure correlation -> high correlation without causality
+    
+
+```{r cor}
+# Positive linear relationship
+# Equivalently:
+cor(sales, advertisement_spending)
+# standardized covariance thus between -1 and 1
+cov(sales, advertisement_spending) / 
+  (sd(sales) * sd(advertisement_spending)) 
+
+plot(sales, advertisement_spending)
+
+# Negative linear Relationship
+cor(sales, -sales + rnorm(100, 0, 5))
+plot(sales, -sales + rnorm(100, 0, 5))
+
+# No linear relationship
+set.seed(10)
+cor(rnorm(100), rnorm(100))
+plot(rnorm(100), rnorm(100))
+```
+
+- Examples of **nonlinear** relationships
+
+```{r nonlin}
+plot(sin(1:100))
+plot(function(x) x - 0.1 * x^2, xlim = c(-50, 60), type = 'p')
+```
+
+## Covariance
+
+- Unstandardized correlation
+- Same sign but different magnitude
+- Value depends on variance of the data and is thus not meaningful by itself
+
+```{r cov}
+# Equivalently:
+sum((sales - mean(sales)) * (advertisement_spending - mean(advertisement_spending))) / 
+  (length(sales) - 1)
+cov(sales, advertisement_spending)
+```
+
+- Notice relationship with variance
+
+```{r covtovar}
+cov(sales, sales)
+var(sales)
+```
+
+
